@@ -52,6 +52,7 @@ static void print_usage(int argc, char **argv)
 	printf("  -u, --udid UDID\ttarget specific device by its 40-digit device UDID\n");
 	printf("  -s, --service URL\tuse activation webservice at URL instead of default\n");
 	printf("  -v, --version\t\tprint version information and exit\n");
+	printf("  -z, --no-ask-password\t\tdon't ask password when device have icloud account \n");
 	printf("  -h, --help\t\tprints usage information\n");
 	printf("\n");
 	printf("Homepage: <http://libimobiledevice.org>\n");
@@ -79,6 +80,7 @@ int main(int argc, char *argv[])
 	int session_mode = 0;
 	int i;
 	int result = EXIT_FAILURE;
+	int no_ask_password = 0;
 
 	typedef enum {
 		OP_NONE = 0, OP_ACTIVATE, OP_DEACTIVATE, OP_GETSTATE
@@ -117,6 +119,10 @@ int main(int argc, char *argv[])
 		else if (!strcmp(argv[i], "-v") || !strcmp(argv[i], "--version")) {
 			printf("ideviceactivation %s\n", PACKAGE_VERSION);
 			return EXIT_SUCCESS;
+		}
+		else if (!strcmp(argv[i], "-z") || !strcmp(argv[i], "--no-ask-password")) {
+			no_ask_password = 1;
+			continue;
 		}
 		else if (!strcmp(argv[i], "activate")) {
 			op = OP_ACTIVATE;
@@ -441,28 +447,38 @@ int main(int argc, char *argv[])
 
 					idevice_activation_request_set_fields_from_response(request, response);
 
-					do {
-						field_key = NULL;
-						plist_dict_next_item(fields, iter, &field_key, NULL);
-						if (field_key) {
-							if (idevice_activation_response_field_requires_input(response, field_key)) {
-								idevice_activation_response_get_label(response, field_key, &field_label);
-								printf("input %s: ", field_label ? field_label : field_key);
-								fflush(stdin);
-								scanf("%1023s", input);
-								idevice_activation_request_set_field(request, field_key, input);
-								if (field_label) {
-									free(field_label);
-									field_label = NULL;
+					if( no_ask_password == 0 )
+					{
+						do {
+							field_key = NULL;
+							plist_dict_next_item(fields, iter, &field_key, NULL);
+							if (field_key) {
+								if (idevice_activation_response_field_requires_input(response, field_key)) {
+									idevice_activation_response_get_label(response, field_key, &field_label);
+									printf("input %s: ", field_label ? field_label : field_key);
+									fflush(stdin);
+									scanf("%1023s", input);
+									idevice_activation_request_set_field(request, field_key, input);
+									if (field_label) {
+										free(field_label);
+										field_label = NULL;
+									}
 								}
 							}
-						}
-					} while(field_key);
+						} while(field_key);
+					}
 
 					free(iter);
 					iter = NULL;
 					idevice_activation_response_free(response);
 					response = NULL;
+					
+					if( no_ask_password == 0 ) 
+					{
+						//Icloud account without password == activation fail
+						result = EXIT_FAILURE;
+						goto cleanup;
+					}
 				}
 
 			}
