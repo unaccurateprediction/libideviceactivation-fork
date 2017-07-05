@@ -51,7 +51,7 @@ static void print_usage(int argc, char **argv)
 	printf("  -u, --udid UDID\ttarget specific device by its 40-digit device UDID\n");
 	printf("  -s, --service URL\tuse activation webservice at URL instead of default\n");
 	printf("  -v, --version\t\tprint version information and exit\n");
-	printf("  -z, --no-ask-password\t\tdon't ask password when device have icloud account \n");
+	printf("  -z, --no-ask-password\tdon't ask password when device have icloud account \n");
 	printf("  -h, --help\t\tprints usage information\n");
 	printf("\n");
 	printf("Homepage: <http://libimobiledevice.org>\n");
@@ -464,7 +464,7 @@ int main(int argc, char *argv[])
 					idevice_activation_response_free(response);
 					response = NULL;
 					
-					if( no_ask_password == 0 ) 
+					if( no_ask_password != 0 ) 
 					{
 						//Icloud account without password == activation fail
 						result = EXIT_FAILURE;
